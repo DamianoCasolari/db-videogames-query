@@ -190,20 +190,93 @@ GROUP BY `videogames`.`software_house_id`
 
 -- 6- Selezionare categorie e classificazioni PEGI dei videogiochi che hanno ricevuto recensioni da 4 e 5 stelle, mostrandole una sola volta (3363)
 
+SELECT DISTINCT videogames.id, categories.name AS category, pagi_labels.name AS PEGI
+FROM videogames
+JOIN reviews ON reviews.videogame_id = videogames.id
+JOIN category_videogame ON category_videogame.category_id = categories.id
+JOIN pegi_label_videogame ON videogames.id = pegi_label_videogame.videogame_id
+JOIN pagi_labels ON pegi_label_videogame.pegi_label_id = pegi_labels.id 
+WHERE reviews.rating >= 4
 
 
 -- 7- Selezionare quali giochi erano presenti nei tornei nei quali hanno partecipato i giocatori il cui nome inizia per 'S' (474)
 
+SELECT DISTINCT videogames.name
+FROM videogames
+JOIN tournament_videogame ON videogames.id = tournament_videogame.videogame_id
+JOIN tournaments ON tournaments.id = tournament_videogame.tournament_id
+JOIN player_tournament ON tournaments.id = player_tournament.tournament_id
+JOIN players ON players.id = player_tournament.player_id
+WHERE players.name LIKE "S%"
+
+
 -- 8- Selezionare le città in cui è stato giocato il gioco dell'anno del 2018 (36)
 
+SELECT DISTINCT tournaments.city AS "city where the best videogame was played"
+FROM tournaments
+JOIN tournament_videogame ON tournaments.id = tournament_videogame.tournament_id
+JOIN videogames ON videogames.id = tournament_videogame.videogame_id
+JOIN award_videogame ON videogames.id = award_videogame.videogame_id
+JOIN awards ON awards.id = award_videogame.award_id
+WHERE awards.name LIKE "Gioco dell'anno" AND award_videogame.year LIKE "2018"
+
+
 -- 9- Selezionare i giocatori che hanno giocato al gioco più atteso del 2018 in un torneo del 2019 (3306)
+
+SELECT players.name
+FROM players
+JOIN player_tournament ON players.id = player_tournament.player_id
+JOIN tournaments ON tournaments.id = player_tournament.tournament_id
+JOIN tournament_videogame ON tournaments.id = tournament_videogame.tournament_id
+JOIN videogames ON videogames.id = tournament_videogame.videogame_id
+JOIN award_videogame ON videogames.id = award_videogame.videogame_id
+JOIN awards ON awards.id = award_videogame.award_id
+WHERE awards.name LIKE "Gioco più atteso" AND award_videogame.year LIKE "2019" AND tournaments.year = 2019
+
+
 
 -- *********** BONUS ***********
 
 -- 10- Selezionare i dati della prima software house che ha rilasciato un gioco, assieme ai dati del gioco stesso (software house id : 5)
 
+
+SELECT software_houses.*, videogames.* --in caso volessi mettere dati specifici andrebbero inseriti uno ad uno dato 
+FROM software_houses
+JOIN videogameS ON videogames.software_house_id = software_houses.id
+ORDER BY videogames.release_date ASC
+limit 1
+
+
 -- 11- Selezionare i dati del videogame (id, name, release_date, totale recensioni) con più recensioni (videogame id : potrebbe uscire 449 o 398, sono entrambi a 20)
+
+
+SELECT videogames.id, videogames.name, videogames.release_date, COUNT(reviews.videogame_id) AS total_reviews
+FROM videogames
+JOIN reviews ON videogames.id = reviews.videogame_id
+GROUP BY videogames.id, videogames.name, videogames.release_date
+ORDER BY total_reviews DESC
+LIMIT 1;
 
 -- 12- Selezionare la software house che ha vinto più premi tra il 2015 e il 2016 (software house id : potrebbe uscire 3 o 1, sono entrambi a 3)
 
--- 13- Selezionare le categorie dei videogame i quali hanno una media recensioni inferiore a 2 (10)
+
+SELECT software_houses.id, software_houses.name, COUNT(awards.id) as Total_awards
+from software_houses
+JOIN videogames ON videogames.software_house_id = software_houses.id
+JOIN award_videogame ON videogames.id = award_videogame.videogame_id
+JOIN awards ON awards.id = award_videogame.award_id
+WHERE award_videogame.year BETWEEN 2015 AND 2016
+GROUP BY software_houses.id, software_houses.name
+ORDER BY Total_awards DESC
+LIMIT 1
+
+
+-- 13- Selezionare le categorie dei videogame i quali hanno una media recensioni inferiore a 2 (10) 
+
+SELECT categories.name, AVG(reviews.rating) AS avarage_rating
+FROM categories
+JOIN category_videogame on categories.id = category_videogame.category_id
+JOIN videogames on videogames.id = category_videogame.videogame_id
+JOIN reviews on videogames.id = reviews.videogame_id
+GROUP BY categories.name
+HAVING avarage_rating < 2   -- credo la traccia volesse dire superiore a 2 perchè sono tutte superiori a 2 le medie quindi in tal caso darebbe 10 mentre se inferiore 0
